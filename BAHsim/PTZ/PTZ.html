@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAHsim - PTZ</title>
+    <style>
+        #helpModal {
+            display: none;
+            background-color: aliceblue;
+            width: 80vw;
+            height: 80vh;
+            z-index: 999;
+            position: fixed;
+            box-shadow: 0 0 0.3rem 0.3rem grey;
+            padding: 1rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .helpmodalCloseButton {
+            width: 2rem;
+            height: 2rem;
+            color: white;
+            background-color: red;
+            line-height: 2rem;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            position: absolute;
+            right: 0;
+            top: 0;
+            user-select: none;
+            cursor: pointer;
+        }
+        #tray {
+            position: fixed;
+            right: 0;
+            top: 0;
+            z-index: 998;
+            display: flex;
+        }
+        .trayButton {
+            width: 3rem;
+            height: 3rem;
+            line-height: 3rem;
+            text-align: center;
+            font-size: 2rem;
+            user-select: none;
+            cursor: pointer;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .fullScreenButton {
+            background-color: paleturquoise;
+        }
+        .helpButton {
+            background-color: palegoldenrod;
+        }
+
+        #PTZMonitor {
+            margin: 2rem;
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        }
+            #monitorFrame {
+                outline: 1rem rgb(30, 30, 30) solid;
+                width: 32rem;
+                height: 18rem;
+                display: flex;
+                flex-wrap: wrap;
+                overflow: hidden;
+            }
+            .monitorView {
+                background-color: rgb(120,180,200);
+                width: 16rem;
+                height: 9rem;
+                border: 1px white solid;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            .monitorView img {
+                position: relative;
+                width: 100%;  
+            }
+            .transformTransitioned {
+                transition: translate 1s, scale 1s, transform-origin 1s;
+                animation: blurOff 1s forwards;
+            }
+
+            
+            #cam4img {
+                height: 100%
+            }
+        
+        #Notepad {
+            position: absolute;
+            left: 40rem;
+            top: 1rem
+        }
+        #Notepad > img {
+            height: 20rem;
+        }
+        #Notepad > div {
+            position:absolute;
+            left: 2.5rem;
+            top: 1rem;
+            width: 10.5rem;
+            height: 17rem;
+            padding: 0.5rem;
+            font-family:'Courier New', Courier, monospace;
+            overflow-y: scroll;
+        }
+        
+        #PTZController {
+            display: flex;
+            justify-content: space-between;
+            background-color: rgb(70, 70, 60);
+            width: 60rem;
+            height: 23rem;
+            padding: 1rem;
+            border: 1rem rgb(140,140,120) solid;
+            border-radius: 2rem;
+            font-family: Arial, Helvetica, sans-serif;
+            user-select: none;
+            outline: 0.25rem rgb(190,190,190) solid;
+            outline-offset: -1rem;
+        }
+                .column {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-around;
+                    margin: 0.4rem;
+                }
+                .row {
+                    display: flex;
+                    flex-direction: row;
+                }
+                .rowVerticalAlign {
+                    align-items: center;
+                }
+                .knob {
+                    background-color: rgb(50,50,50);
+                    width: 2.5rem;
+                    height: 2.5rem;
+                    border-radius: 2.5rem;
+                    border: 2px aliceblue solid;
+                    box-shadow: 0.3rem 0.3rem rgb(10,10,10);
+                    cursor: pointer;
+                    margin: 0.5rem;
+                }
+                .sqButton {
+                    background-color: white;
+                    width: 4rem;
+                    height: 2.5rem;
+                    border-radius: 0.75rem;
+                    margin: 0.5rem;
+                    box-shadow: 0.3rem 0.3rem rgb(150, 150, 150);
+                    cursor: pointer;
+                    line-height: 2.5rem;
+                    text-align: center;
+                    font-size: 1rem;
+                    font-weight: bold;
+                }
+                .sqButton:active {
+                    outline: 1rem orangered solid
+                }
+                .rndButton {
+                    background-color: white;
+                    width: 2.5rem;
+                    height: 2.5rem;
+                    border-radius: 4rem;
+                    margin: 0.5rem;
+                    box-shadow: 0.3rem 0.3rem rgb(150, 150, 150);
+                    line-height: 2.5rem;
+                    text-align: center;
+                    font-size: 0.5rem;
+                    font-weight: bold;
+                    cursor: pointer;
+                }
+                .rndButton:active {
+                    outline: 1rem orangered solid
+                }
+                .buttonLargerFont {
+                    font-size: 0.8rem;
+                }
+                .lit {
+                    background-color: rgb(0,255,255);
+                    box-shadow: 0.3rem 0.3rem rgb(0,150,150);
+                }
+                .screen {
+                    border: 2px black solid;
+                    border-radius: 0.25rem;
+                    width: 14rem;
+                    background-color: rgb(50,70,50);
+                    padding: 0.5rem;
+                    outline: 3px rgb(30,50,30) solid;
+                    outline-offset: -4px;
+                }
+                .screenText {
+                    font-family:'Courier New', Courier, monospace;
+                    color: greenyellow;
+                    font-weight: bold;
+                }
+                .group {
+                    border: 1px white solid;
+                    border-radius: 1rem;
+                }
+                .zoomRocker {
+                    display: flex;
+                    flex-direction: row;
+                    rotate: 30deg;
+                    margin-top: 2rem;
+                    margin-bottom: 1rem;
+                    margin-left: 2rem;
+                }
+                .rockerButton {
+                    background-color: grey;
+                    width: 2rem;
+                    height: 2rem;
+                    cursor: pointer;
+                    box-shadow: 0.3rem 0.3rem rgb(30,30,30);
+                    user-select: none;
+                    touch-action: none;
+                }
+                .rockerButton:active {
+                    outline: 1rem orangered solid;
+                    position: relative;
+                }
+                #teleButton {
+                    border-radius: 0.5rem 0 0 0.5rem;
+                }
+                #wideButton {
+                    border-radius: 0 0.5rem 0.5rem 0;
+                }
+                .rockerMiddle {
+                    background-color: rgb(80,80,80);
+                    width: 4rem;
+                    height: 2rem;
+                    box-shadow: 0.3rem 0.3rem rgb(30,30,30);
+                }
+                .rockerLabel {
+                    color: white;
+                    text-align: center;
+                    margin-top: 0.4rem;
+                }
+                .logo {
+                    color: white;
+                    font-family:'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+                    transform: scaleX(2);
+                    transform-origin: left;
+                    font-size: 1.5rem;
+                    position: relative;
+                    left: 2.5rem;
+                }
+                #joystickBase {
+                    background-color: rgb(180,180,180);
+                    border: 2rem rgb(140,140,120) solid;
+                    width: 10rem;
+                    height: 10rem;
+                    border-radius: 10rem;
+                }
+                #joystick {
+                    background-color: rgb(50,50,50);
+                    border: 0.5rem black solid;
+                    width: 5rem;
+                    height: 5rem;
+                    border-radius: 10rem;
+                    position: relative;
+                    left:-10rem;
+                    top:4rem;
+                }
+                
+                .stickyNote {
+                    position: absolute;
+                    background-color: palegoldenrod;
+                    width: 1.2rem;
+                    height: 1.2rem;
+                    line-height: 1.2rem;
+                    text-align: center;
+                    font-family: cursive;
+                }
+                #sn1 {
+                    rotate: 10deg;
+                    left: 2rem;
+                    top: 2rem;
+                }
+                #sn2 {
+                    rotate: 10deg;
+                    left: 2rem;
+                    top: 11rem;
+                }
+                #sn3 {
+                    rotate: -10deg;
+                    left: 34rem;
+                    top: 2rem;
+                }
+                #sn4 {
+                    rotate: -10deg;
+                    left: 34rem;
+                    top: 11rem;
+                }
+                #sleepSimCheckboxContainer {
+                    position: relative;
+                    background-color: palegoldenrod;
+                    padding: 0.2rem;
+                    rotate: 10deg;
+                    font-family: 'Courier New', Courier, monospace;
+                    text-align: left;
+                    width:7rem;
+                }
+                #sleepSimCheckboxContainer::after {
+                    content: "";
+                        position: absolute;
+                        bottom: 0;
+                        right: 0;
+                        border-width: 0 0rem 1rem 1.5rem;
+                        border-style: solid;
+                        border-color: rgb(70, 70, 60) #c7a964;
+                }
+
+    </style>
+</head>
+<body ontouchstart>
+<div id="helpModal">
+    <div class="helpmodalCloseButton" onclick="closeHelpModal()">×</div>
+    <h1>BAHsim - Bolin PTZ controller</h1>
+    <h2>Sim for "Camera operator"</h2>
+    <h3>XBox controller</h3>
+    <p>An Xbox controller may be used with this sim:</p>
+    <ul>
+        <li>PTZ joystick = XBox right analog stick.</li>
+        <li>PTZ zoom in/out rocker buttons = XBox left/right Dpad buttons.</li>
+    </ul>
+    <h3>Enable sleep sim</h3>
+    <p>Enable simulation of the PTZ controller going into standby after 10 seconds of no user input. Takes 3 seconds to wake up after a button press. It's not realistic to turn this off, but might be handy if you're just trying to get used to what buttons do.</p>
+    <h3>Version info</h3>
+    <p>November 2024</p>
+</div>
+    
+    <div id="tray">
+        <div class="trayButton fullScreenButton" onclick="fullScreenToggle()">◲</div>
+        <div class="trayButton helpButton" onclick="openHelpModal()">?</div>
+    </div>
+    
+    <div id="PTZMonitor">
+        <div id="monitorFrame">
+            <div class="monitorView" id="Cam1">
+                <img id="cam1img" src="Stage.jpg">
+            </div>
+            <div class="monitorView" id="Cam3">
+                <img id="cam3img" src="Stage.jpg">
+            </div>
+            <div class="monitorView" id="Cam2">
+                <img id="cam2img" src="Stage.jpg">
+            </div>
+            <div class="monitorView" id="Cam4">
+                <img id="cam4img" src="Cam4.jpg">
+            </div>
+
+            <div class="stickyNote" id="sn1">1</div>
+            <div class="stickyNote" id="sn3">3</div>
+            <div class="stickyNote" id="sn2">2</div>
+            <div class="stickyNote" id="sn4">4</div>
+        </div>
+    </div>
+
+    <div id="Notepad">
+        <div contenteditable="true">Notepad (click/tap to edit)</div>
+        <img contenteditable="true" src="notepad.png">
+    </div>
+
+    <div id="PTZController">
+        <div class="column">
+            <div class="row">
+                <div class="column">
+                    <div class="knob"></div>
+                </div>
+                <div class="column">
+                    <div class="sqButton"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="column">
+                    <div class="knob"></div>
+                    <div class="knob"></div>
+                </div>
+                <div class="column">
+                    <div class="sqButton"></div>
+                    <div class="sqButton"></div>
+                    <div class="sqButton"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="column">
+                    <div class="knob"></div>
+                </div>
+                <div class="column">
+                    <div class="sqButton"></div>
+                    <div class="sqButton"></div>
+                </div>
+            </div>
+        </div>
+            <div class="column">
+                <div class="row">
+                    <div class="screen">
+                        <div class="screenText" id="screenText">CAMx ONVIF OK<br>CAMx</div>
+                    </div>
+                </div>
+                <div class="row group">
+                    <div class="rndButton"></div>
+                    <div class="rndButton"></div>
+                    <div class="rndButton"></div>
+                    <div class="rndButton"></div>
+                </div>
+                <div class="row">
+                    <div class="column group">
+                        <div class="row">
+                            <div id="f1Button" class="rndButton buttonLargerFont lit" onclick="cameraSelect(0)">F1</div>
+                            <div id="f2Button" class="rndButton buttonLargerFont" onclick="cameraSelect(1)">F2</div>
+                            <div id="f3Button" class="rndButton buttonLargerFont" onclick="cameraSelect(2)">F3</div>
+                        </div>
+                        <div class="row">
+                            <div class="rndButton buttonLargerFont">F4</div>
+                            <div class="rndButton buttonLargerFont">F5</div>
+                            <div class="rndButton buttonLargerFont">F6</div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="rndButton"></div>
+                        <div class="rndButton"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="zoomRocker">
+                        <div class="rockerColumn">
+                            <div id="teleButton" class="rockerButton" onmousedown="teleButtonDown()" onmouseup="teleButtonUp()" onmouseout="teleButtonUp()" ontouchstart="teleButtonDown()" ontouchend="teleButtonUp()" ontouchcancel="teleButtonUp()"></div>
+                            <div class="rockerLabel">T</div>
+                        </div>
+                        <div class="rockerColumn">
+                            <div class="rockerMiddle"></div>
+                            <div class="rockerLabel">ZOOM</div>
+                        </div>
+                        <div class="rockerColumn">
+                            <div id="wideButton" class="rockerButton" onmousedown="wideButtonDown()" onmouseup="wideButtonUp()" onmouseout="wideButtonUp()" ontouchstart="wideButtonDown()" ontouchend="wideButtonUp()" ontouchcancel="wideButtonUp()"></div>
+                            <div class="rockerLabel">W</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="row rowVerticalAlign">
+                    <div class="rndButton"></div>
+                    <div class="knob"></div>
+                    <div class="knob"></div>
+                </div>
+                <div class="row">
+                    <div class="rndButton">RESET</div>
+                    <div id="presetButton" class="rndButton" onclick="presetModeSet('Preset')">PRESET</div>
+                    <div id="callButton" class="rndButton" onclick="presetModeSet('Call')">CALL</div>
+                </div>
+                <div class="column group">
+                    <div class="row">
+                        <div id="p7" class="sqButton" onclick="presetIdSet(7)">7</div>
+                        <div id="p8" class="sqButton" onclick="presetIdSet(8)">8</div>
+                        <div id="p9" class="sqButton" onclick="presetIdSet(9)">9</div>
+                    </div>
+                    <div class="row">
+                        <div id="p4" class="sqButton" onclick="presetIdSet(4)">4</div>
+                        <div id="p5" class="sqButton" onclick="presetIdSet(5)">5</div>
+                        <div id="p6" class="sqButton" onclick="presetIdSet(6)">6</div>
+                    </div>
+                    <div class="row">
+                        <div id="p1" class="sqButton" onclick="presetIdSet(1)">1</div>
+                        <div id="p2" class="sqButton" onclick="presetIdSet(2)">2</div>
+                        <div id="p3" class="sqButton" onclick="presetIdSet(3)">3</div>
+                    </div>
+                    <div class="row">
+                        <div class="sqButton">MON</div>
+                        <div id="p0" class="sqButton" onclick="presetIdSet(0)">0</div>
+                        <div class="sqButton">CAM</div>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="row">
+                    <div id="sleepSimCheckboxContainer">
+                        <input id="sleepSimCheckbox" onclick="sleepSimCheck()" type="checkbox">Enable<br>sleep sim</input>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="logo">BOLIN</div>
+                </div>
+                <div class="row">
+                    <div id="joystickBase"></div>
+                    <div id="joystick"></div>
+                </div>
+            </div>
+
+    </div>
+</body>
+
+
+
+<script>
+    // Attach variables to DOM elements.
+    var joystick = document.getElementById("joystick");
+    var teleButton = document.getElementById("teleButton");
+    var wideButton = document.getElementById("wideButton");
+    
+    // Gamepad setup
+    var connectEL = window.addEventListener("gamepadconnected", (e) => {
+        const gp = navigator.getGamepads()[e.gamepad.index];
+        console.log(
+            "Gamepad connected at index %d: %s. %d buttons, %d axes.",
+            gp.index,
+            gp.id,
+            gp.buttons.length,
+            gp.axes.length,
+        );
+    });
+    
+    // Variables to receive input from GUI or XBox controller.
+    let joystickX = 0;
+    let joystickY = 0;
+    let isJoystickDpadLeft = false;
+    let isJoystickDpadRight = false;
+    let isXboxDpadLeft = false;
+    let isXboxDpadRight = false;
+    
+    // Whether board is ignoring user input.
+    let sleepCountdownTimer = null;
+    let wakeupCountdownTimer = null;
+    let isDelaySimulated = false;
+    let isAsleep = true;
+    let isWaking = false;
+    function updateSleepStatus() {
+        if(!isDelaySimulated) {isAsleep = false;};
+        if(isAsleep) {
+            if(!isWaking) {
+                isWaking = true;
+                wakeupCountdownTimer = setTimeout(() => {
+                    isAsleep = false;
+                    isWaking = false;
+                }, 3000);
+            }
+        }
+        clearTimeout(sleepCountdownTimer);
+        sleepCountdownTimer = setTimeout(() => {
+            isAsleep = true;
+        }, 5000); 
+    };
+    function sleepSimCheck() {
+        let checkbox = document.getElementById("sleepSimCheckbox");
+        if (checkbox.checked) {isDelaySimulated = true} else {isDelaySimulated = false};
+    };
+
+    
+    // Receive zoom button clicks.
+    function teleButtonDown() {
+        event.preventDefault();
+        updateSleepStatus(); if(isAsleep) {return};
+        isJoystickDpadLeft = true;
+    };
+    function teleButtonUp() {
+        event.preventDefault();
+        isJoystickDpadLeft = false;
+    };
+    function wideButtonDown() {
+        event.preventDefault();
+        updateSleepStatus(); if(isAsleep) {return};
+        isJoystickDpadRight = true;
+    };
+    function wideButtonUp() {
+        event.preventDefault();
+        isJoystickDpadRight = false;
+    };
+
+    // Receive clicks from F# buttons.
+    function cameraSelect(id) {
+        updateSleepStatus(); if(isAsleep) {return};
+        currentCamId = id;
+    }
+    // Receive button from preset buttons.
+    function presetModeSet(mode) {
+        updateSleepStatus(); if(isAsleep) {return};
+        currentPresetMode = mode;
+    }
+    function presetIdSet(id) {
+        updateSleepStatus(); if(isAsleep) {return};
+        currentPresetId = id;
+        if(currentPresetMode==="Preset"){setPreset(id)};
+        if(currentPresetMode==="Call"){callPreset(id)};
+    };
+    function callPreset(id) {
+        displayMessage(`CALLED PRESET ${id}`, 2000);
+        document.getElementById(cameras[currentCamId].divName).classList.add("transformTransitioned");
+        cameras[currentCamId].transXpercent = cameras[currentCamId].presets[id].transXpercent;
+        cameras[currentCamId].transYpercent = cameras[currentCamId].presets[id].transYpercent;
+        cameras[currentCamId].zoom = cameras[currentCamId].presets[id].zoom;
+    };
+    function setPreset(id) {
+        displayMessage(`SAVED PRESET ${id}`, 2000);
+        cameras[currentCamId].presets[id].transXpercent = cameras[currentCamId].transXpercent;
+        cameras[currentCamId].presets[id].transYpercent = cameras[currentCamId].transYpercent;
+        cameras[currentCamId].presets[id].zoom = cameras[currentCamId].zoom;
+    };
+    var messageTimeoutId;
+    function displayMessage(text, displayTime) {
+        clearTimeout(messageTimeoutId);
+        screenMessage = text;
+        messageTimeoutId = setTimeout(() => {
+            screenMessage = null;
+        }, displayTime);
+    }
+
+    // Get input from draggable GUI joystick.
+    // Variables to track drag state and initial position
+    var isDragging = false;
+    var centerPosition = { x: 0, y: 0 };
+    var baseFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+
+    // Maximum drag distance in pixels
+    var maxDistancePx = baseFontSize * 2.5;
+
+    // Mouse and touch down handlers
+    joystick.addEventListener('mousedown', (e) => mouseDown(e.clientX, e.clientY));
+    joystick.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        mouseDown(e.touches[0].clientX, e.touches[0].clientY);
+    });
+
+    // Mouse and touch move handlers
+    document.addEventListener('mousemove', (e) => mouseMove(e.clientX, e.clientY));
+    document.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        mouseMove(e.touches[0].clientX, e.touches[0].clientY);
+    });
+
+    // Mouse and touch up handlers to stop dragging and reset position
+    document.addEventListener('mouseup', stopDragging);
+    document.addEventListener('touchend', stopDragging);
+
+    function mouseDown(x, y) {
+        updateSleepStatus();
+        
+        isDragging = true;
+
+        // Set center position to the joystick's initial position
+        const joystickRect = joystick.getBoundingClientRect();
+        centerPosition.x = joystickRect.left + joystickRect.width / 2;
+        centerPosition.y = joystickRect.top + joystickRect.height / 2;
+    }
+
+    function mouseMove(x, y) {
+        if (isDragging) {
+            // Calculate offset from the center position
+            var offsetX = x - centerPosition.x;
+            var offsetY = y - centerPosition.y;
+
+            // Calculate the distance and constrain it within maxDistancePx
+            var distance = Math.sqrt(offsetX ** 2 + offsetY ** 2);
+            if (distance > maxDistancePx) {
+                // Constrain movement to within the max distance using scale factor
+                var scale = maxDistancePx / distance;
+                offsetX *= scale;
+                offsetY *= scale;
+            }
+
+            // Convert movement to "rem" for internal joystick values
+            var offsetXrem = offsetX / baseFontSize;
+            var offsetYrem = offsetY / baseFontSize;
+            
+            // Calculate normalized joystick values in range [-1, 1]
+            joystickX = offsetXrem / (maxDistancePx / baseFontSize);
+            joystickY = offsetYrem / (maxDistancePx / baseFontSize);
+        }
+    }
+
+    function stopDragging() {
+        if (isDragging) {
+            isDragging = false;
+
+            // Reset joystick position visually and set internal values to 0
+            joystick.style.transform = 'translate(0px, 0px)';
+            joystickX = 0;
+            joystickY = 0;
+        }
+    }
+
+
+    // Get input from XBox controller.
+    function updateControllerInput() {
+        const gamepads = navigator.getGamepads();
+        const gamepad = gamepads[0];
+        if (gamepad && !isDragging) {
+            joystickX = gamepad.axes[2];
+            joystickY = gamepad.axes[3];
+            isXboxDpadLeft = gamepad.buttons[14]?.pressed || false;
+            isXboxDpadRight = gamepad.buttons[15]?.pressed || false;
+        }
+    }
+
+    let lastFrameDateTime;
+    let currentCamId = 0;
+    let currentPresetId = 1;
+    let currentPresetMode = "Call";
+    let screenMessage = null;
+
+    const cameras = [
+        { id: 0, transXpercent: 0, transYpercent: 60, zoom: 1, divName: "cam1img", presets: [{ id: 0, transXpercent: 0, transYpercent: 0, zoom: 1.0 }, { id: 1, transXpercent: 10, transYpercent: 5, zoom: 1.2 }, { id: 2, transXpercent: -10, transYpercent: -5, zoom: 1.3 }, { id: 3, transXpercent: 20, transYpercent: 0, zoom: 1.5 }, { id: 4, transXpercent: -20, transYpercent: 0, zoom: 1.4 }, { id: 5, transXpercent: 0, transYpercent: 15, zoom: 1.6 }, { id: 6, transXpercent: 0, transYpercent: -15, zoom: 1.7 }, { id: 7, transXpercent: 30, transYpercent: 30, zoom: 1.8 }, { id: 8, transXpercent: -30, transYpercent: -30, zoom: 2.0 }, { id: 9, transXpercent: 25, transYpercent: -10, zoom: 1.9 }]},
+        { id: 1, transXpercent: 0, transYpercent: 60, zoom: 1, divName: "cam2img", presets: [{ id: 0, transXpercent: 0, transYpercent: 0, zoom: 1.0 }, { id: 1, transXpercent: 10, transYpercent: 5, zoom: 1.2 }, { id: 2, transXpercent: -10, transYpercent: -5, zoom: 1.3 }, { id: 3, transXpercent: 20, transYpercent: 0, zoom: 1.5 }, { id: 4, transXpercent: -20, transYpercent: 0, zoom: 1.4 }, { id: 5, transXpercent: 0, transYpercent: 15, zoom: 1.6 }, { id: 6, transXpercent: 0, transYpercent: -15, zoom: 1.7 }, { id: 7, transXpercent: 30, transYpercent: 30, zoom: 1.8 }, { id: 8, transXpercent: -30, transYpercent: -30, zoom: 2.0 }, { id: 9, transXpercent: 25, transYpercent: -10, zoom: 1.9 }]},
+        { id: 2, transXpercent: 0, transYpercent: 60, zoom: 1, divName: "cam3img", presets: [{ id: 0, transXpercent: 0, transYpercent: 0, zoom: 1.0 }, { id: 1, transXpercent: 10, transYpercent: 5, zoom: 1.2 }, { id: 2, transXpercent: -10, transYpercent: -5, zoom: 1.3 }, { id: 3, transXpercent: 20, transYpercent: 0, zoom: 1.5 }, { id: 4, transXpercent: -20, transYpercent: 0, zoom: 1.4 }, { id: 5, transXpercent: 0, transYpercent: 15, zoom: 1.6 }, { id: 6, transXpercent: 0, transYpercent: -15, zoom: 1.7 }, { id: 7, transXpercent: 30, transYpercent: 30, zoom: 1.8 }, { id: 8, transXpercent: -30, transYpercent: -30, zoom: 2.0 }, { id: 9, transXpercent: 25, transYpercent: -10, zoom: 1.9 }]}
+    ];
+
+
+
+
+
+    // Main animation updater
+    function draw()
+    {
+        // If first frame, just get another one so we have a last frame time to work with.
+        if(lastFrameDateTime === undefined) {
+            lastFrameDateTime = new Date();
+            requestAnimationFrame(draw);
+            return;
+        };
+        var frameDeltaMs = new Date() - lastFrameDateTime;
+        
+
+        // Update values of controller inputs
+        updateControllerInput();
+        
+
+        // Joystick visuals
+        joystick.style.left = (-10 + (4*joystickX)) + "rem";
+        joystick.style.top = (4 + (4 * joystickY)) + "rem";
+
+
+        // Zoom rocker visuals
+        if(isJoystickDpadLeft || isXboxDpadLeft) {teleButton.style.backgroundColor = "orange"} else {teleButton.style.backgroundColor = "grey"};
+        if(isJoystickDpadRight || isXboxDpadRight) {wideButton.style.backgroundColor = "orange"} else {wideButton.style.backgroundColor = "grey"};
+        
+    
+        // Check if translation input is within deadzones.
+        const deadZoneSizeX = 0.1;
+        let deadZonedInputX = 0;
+        const scaleX = -0.02;
+        if(joystickX > deadZoneSizeX || joystickX < (-1 * deadZoneSizeX))
+            {
+                document.getElementById(cameras[currentCamId].divName).classList.remove("transformTransitioned");
+                deadZonedInputX = joystickX;
+                updateSleepStatus(); if(isAsleep) {deadZonedInputX = 0};
+            }
+        else {deadZonedInputX = 0};
+        
+        const deadZoneSizeY = 0.1;
+        let deadZonedInputY = 0;
+        const scaleY = -0.02;
+        if(joystickY > deadZoneSizeY || joystickY < (-1 * deadZoneSizeY))
+            {
+                document.getElementById(cameras[currentCamId].divName).classList.remove("transformTransitioned");
+                deadZonedInputY = joystickY;
+                updateSleepStatus(); if(isAsleep) {deadZonedInputY = 0};
+            }
+        else {deadZonedInputY = 0};
+        
+
+        // Calculate amount to move camera.
+        let deltaXpercent = deadZonedInputX * scaleX * frameDeltaMs;
+        cameras[currentCamId].transXpercent += deltaXpercent;
+        let deltaYpercent = deadZonedInputY * scaleY * frameDeltaMs;
+        cameras[currentCamId].transYpercent += deltaYpercent;
+
+        
+        // Calculate zoom amounts
+        const zoomPower = 0.01;
+        const minZoom = 1;
+        
+        let currentZoom = cameras[currentCamId].zoom;
+        if(isJoystickDpadLeft || isXboxDpadLeft) {
+            updateSleepStatus();
+            if(!isAsleep) {
+                document.getElementById(cameras[currentCamId].divName).classList.remove("transformTransitioned");
+                currentZoom = currentZoom * (frameDeltaMs**zoomPower);
+            }
+        }
+        else if(isJoystickDpadRight || isXboxDpadRight) {
+            updateSleepStatus();
+            if(!isAsleep) {
+                document.getElementById(cameras[currentCamId].divName).classList.remove("transformTransitioned");
+                currentZoom = currentZoom / (frameDeltaMs**zoomPower);
+            }
+        }
+        
+        if(currentZoom < minZoom) {currentZoom = minZoom};
+        
+        cameras[currentCamId].zoom = currentZoom;
+
+
+        // Select "camera" to update data for, update visuals.
+        cameras.forEach(camera => {
+            let cam = document.getElementById(camera.divName);
+            cam.style.translate = `${camera.transXpercent}% ${camera.transYpercent}%`;
+            cam.style.transformOrigin = `${50 - camera.transXpercent}% ${50 - camera.transYpercent}%`;
+            cam.style.scale = `${camera.zoom} ${camera.zoom}`;
+        });
+        
+        // Update F# keys visuals and screen.
+        for (i=0; i<3; i++) {
+            if(currentCamId === i) {
+                document.getElementById(`f${i+1}Button`).classList.add("lit");
+            } else {
+                document.getElementById(`f${i+1}Button`).classList.remove("lit");
+            }
+        };
+        if(screenMessage===null) {
+            document.getElementById("screenText").innerHTML =
+                    `CAM${currentCamId+1} ONVIF OK<br>CAM${currentCamId+1}<br>192.168.10.10${currentCamId+1}`;
+        } else {
+            document.getElementById("screenText").innerHTML =
+                    `CAM${currentCamId+1} ONVIF OK<br>CAM${currentCamId+1}<br>${screenMessage}`;
+        }
+        // Preset button visuals
+        for (i=0; i<=9; i++) {
+            if (i===currentPresetId) {
+                document.getElementById(`p${i}`).classList.add("lit");
+            } else {
+                document.getElementById(`p${i}`).classList.remove("lit");
+            }
+        }
+        if(currentPresetMode ==="Call") {
+            document.getElementById("callButton").classList.add("lit");
+            document.getElementById("presetButton").classList.remove("lit");
+        } else if(currentPresetMode ==="Preset") {
+            document.getElementById("callButton").classList.remove("lit");
+            document.getElementById("presetButton").classList.add("lit");
+        }
+
+        lastFrameDateTime = new Date();
+        requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+    
+    
+    
+    // Disable double tap zoom, because Apple is stupid.
+    document.ondblclick = function(e) {
+        e.preventDefault();
+    }
+
+    //Fullscreen toggle
+    var elem = document.documentElement;
+    var isFullScreen = false;
+    function fullScreenToggle() {
+        if(!isFullScreen) {openFullScreen()} else {closeFullscreen()};
+    }
+    function openFullScreen() {
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { /* Safari */
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { /* IE11 */
+            elem.msRequestFullscreen();
+        }
+        isFullScreen = true;
+    }
+    function closeFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+        }
+        isFullScreen = false;
+    }
+
+    function reset() {
+        location.reload();
+    }
+
+
+    //Open/close help modal
+    let helpModal = document.getElementById("helpModal");
+        function openHelpModal() {helpModal.style.display = "block"};
+        function closeHelpModal() {helpModal.style.display = "none"};
+</script>
+</html>
