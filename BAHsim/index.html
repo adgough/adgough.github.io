@@ -5,23 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BAHsim</title>
-    <style>
-        * {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-    </style>
+    <link rel="stylesheet" href="../style.css">
+
 </head>
 
 <body>
     <h1>BAHsim</h1>
-    <ul>
-        <li>
-            <a href="./StreamDeck/StreamDeck.html">StreamDeck (switcher)</a>
-        </li>
-        <li>
-            <a href="./PTZ/PTZ.html">PTZ controller (camera)</a>
-        </li>
-    </ul>
+    <div class="cardHolder">
+        <a class="card" href="StreamDeck/StreamDeck.html">
+            <img src="sd.jpg">
+            <div>
+                <h2>StreamDeck (switcher)</h2>
+                <p>Elgato StreamDeck simulator, for the "Switcher" operator.</p>
+            </div>
+        </a>
+        <a class="card" href="PTZ/PTZ.html">
+            <img src="ptz.jpg">
+            <div>
+                <h2>PTZ controller (camera)</h2>
+                <p>Bolin PTZ controller sim, for the "Camera" operator.</p>
+            </div>
+        </a>
+    </div>
 </body>
 
 </html>

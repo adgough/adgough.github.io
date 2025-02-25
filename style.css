@@ -1,0 +1,42 @@
+* {
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.cardHolder {
+    display: flex;
+    flex-wrap: wrap;
+}
+.card {
+    display: inline-block;
+    text-decoration: none;
+    color: inherit;
+    margin-top: 1rem;
+    margin-right: 1rem;
+    border-radius: 0.5rem;
+    width: 16rem;
+    box-shadow: 0 0 0.5rem 0 grey;
+    display: inline-block;
+    overflow: hidden;
+}
+.card img {
+    display: block;
+    width: 16rem;
+    height: 9rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+.card div {
+    margin: 0.5rem
+}
+.card p {
+    margin: 0;
+}
+.card h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
