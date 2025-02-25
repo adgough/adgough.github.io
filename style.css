@@ -5,13 +5,17 @@
     font-style: normal;
 }
 
+:root {
+    --darkColour: rgb(80, 10, 10);
+    --lightColour: rgb(255, 233, 233);
+}
 
 * {
     font-family: 'Jost', sans-serif;
 }
 
 .homeIcon {
-    color: darkred;
+    color: var(--darkColour);
     user-select: none;
     cursor: pointer;
     text-decoration: none;
@@ -38,9 +42,14 @@ h1 {
     margin-right: 1rem;
     border-radius: 0.5rem;
     width: 16rem;
+    background-color: var(--lightColour);
     box-shadow: 0 0 0.5rem 0 grey;
     display: inline-block;
     overflow: hidden;
+    position: relative;
+}
+.card:hover {
+    box-shadow: 0 0 0.5rem 0 var(--darkColour);
 }
 .card img {
     display: block;
@@ -57,4 +66,20 @@ h1 {
 .card h2 {
     font-size: 1.2rem;
     margin-bottom: 0.5rem;
+}
+.card::after {
+    content: "↪";
+    background-color: var(--darkColour);
+    color: white;
+    width:2rem;
+    height:2rem;
+    position: absolute;
+    right: 0rem;
+    top: 0rem;
+    margin: 0;
+    padding: 0;
+    font-size: 2rem;
+    line-height: 2rem;
+    text-align: center;
+    border-radius: 0 0 0 0.5rem;
 }
