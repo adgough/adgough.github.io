@@ -68,7 +68,7 @@ h1 {
     margin-bottom: 0.5rem;
 }
 .card::after {
-    content: "↪";
+    content: "↣";
     background-color: var(--darkColour);
     color: white;
     width:2rem;
