@@ -97,6 +97,42 @@
         var output = document.getElementById("output");
         var crosshair = document.getElementById("crosshair");
 
+        var imageWidth;
+        var imageHeight;
+        var transform;
+        var isMapLoaded = false;
+        var lon = 0;
+        var lat = 0;
+
+        function getLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(success, error);
+            } else {console.log("Geolocation is not supported by this browser.");}
+            }
+        function success(position) {
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+        }
+        function error() {
+        console.log("Sorry, no position available.");
+        }
+
+        setInterval(update, 2000);
+        function update() {
+            if (!isMapLoaded) { return; }
+            
+            getLocation();
+            console.log(lon + " " + lat);
+            let long = lon;
+            let lati = lat;
+            let posInput = [long, lati];
+
+            let pixelOutput = dlt.transform2d(transform, posInput);
+            crosshair.style.left = `${pixelOutput[0]*100/imageWidth}%`;
+            crosshair.style.top =  `${pixelOutput[1]*100/imageHeight}%`;
+        }
+        
+
         document.getElementById('jsonFileInput').addEventListener('change', function (event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -107,8 +143,8 @@
                     const { imageBase64, pixelPoints, locations } = jsonData;
 
                     mapImage.onload = () => {
-                        const imageWidth = mapImage.naturalWidth;
-                        const imageHeight = mapImage.naturalHeight;
+                        imageWidth = mapImage.naturalWidth;
+                        imageHeight = mapImage.naturalHeight;
 
                         let dst = [];
                         let src = [];
@@ -131,12 +167,8 @@
                             src.push([location.x, location.y]);
                         });
 
-                        let M = dlt.dlt2d(src, dst);
-                        let p = [-2.4457103274863483, 50.62590154925755];
-                        let r = dlt.transform2d(M, p);
-                        console.log(`${r[0]} - ${r[1]}`);
-                        crosshair.style.left = `${r[0]*100/imageWidth}%`;
-                        crosshair.style.top =  `${r[1]*100/imageHeight}%`;
+                        transform = dlt.dlt2d(src, dst);
+                        
                     };
                     mapImage.src = imageBase64;
 
@@ -147,9 +179,10 @@
 
             };
             reader.readAsText(file);
+            isMapLoaded = true;
         });
 
-
+        
 
 
     </script>
