@@ -106,28 +106,14 @@
         var lat = 0;
 
         const options = {
-            enableHighAccuracy: true,
+            enableHighAccuracy: false,
             timeout: 5000,
             maximumAge: 0,
         };
-        function getLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(success, error, options);
-            } else {console.log("Geolocation is not supported by this browser.");}
-            }
         function success(position) {
+            if (!isMapLoaded) { return; }
             lat = position.coords.latitude;
             lon = position.coords.longitude;
-        }
-        function error() {
-        console.log("Sorry, no position available.");
-        }
-        
-        setInterval(update, 2000);
-        function update() {
-            if (!isMapLoaded) { return; }
-            
-            getLocation();
             console.log(lon + " " + lat);
             let long = lon;
             let lati = lat;
@@ -137,6 +123,12 @@
             crosshair.style.left = `${pixelOutput[0]*100/imageWidth}%`;
             crosshair.style.top =  `${pixelOutput[1]*100/imageHeight}%`;
         }
+        function error() {
+            console.log("Sorry, no position available.");
+        }
+        var posWatch = navigator.geolocation.watchPosition(success, error, options);
+        
+
         
 
         document.getElementById('jsonFileInput').addEventListener('change', function (event) {
