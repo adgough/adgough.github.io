@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Paper2Loc</title>
+    <title>PaperMap</title>
     <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.2/lib/browser/math.min.js"></script>
     <style>
         #mapImage {
@@ -108,7 +108,7 @@
         const options = {
             enableHighAccuracy: true,
             timeout: 5000,
-            maximumAge: 0,
+            maximumAge: 0
         };
         function success(position) {
             if (!isMapLoaded) { return; }

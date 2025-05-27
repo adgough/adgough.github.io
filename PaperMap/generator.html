@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <title>PaperMap Generator</title>
+
+    <link rel="stylesheet" href="../style.css">
+
+    <style>
+        #map {
+            height: 20rem;
+            z-index: 1;
+        }
+
+        button {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #buttonHolder {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        #buttonHolder>* {
+            margin-bottom: 1rem;
+            margin-right: 1rem;
+        }
+
+        #table {
+            margin-top: 1rem;
+        }
+
+        .pointRow {
+            background-color: rgb(220, 220, 220);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .pointRow input {
+            width: 4rem;
+        }
+
+        .inputBlock {
+            display: inline-flex;
+            flex-direction: column;
+            margin-left: 1rem;
+            margin-right: 1rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+
+        }
+
+        .pointRow button {
+            border: none;
+            height: 4rem;
+        }
+
+        .deleteButton {
+            background-color: palevioletred;
+        }
+
+        .caliButton {
+            background-color: powderblue;
+        }
+
+        #imageCaliModal {
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 999;
+            background-color: aliceblue;
+            display: none;
+        }
+
+        #modalInstructions {
+            position: absolute;
+            left: 0;
+            top: 0;
+            margin: 0.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>PaperMap map generator</h1>
+    <div id="map"></div>
+    <p>Selected location (tap map to select):<br><span id="text"></span></p>
+
+    <input type="file" id="fileInput" accept="image/*" style="display:none;" />
+    <div id="buttonHolder">
+        <button onclick="addPoint()">📌 Add</button>
+        <button id="loadImageBtn">📷 Load Image</button>
+        <div>Name: <input id="mapNameField" type="text" value="My Map"></div>
+        <button onclick="exportJSON()">📤 Export</button>
+    </div>
+
+    <div id="table"></div>
+
+    <div id="imageCaliModal">
+        <img id="imageCaliImage" src="pin.png">
+        <div id="modalInstructions">Click the image to select a pixel location.</div>
+    </div>
+    </div>
+
+
+    <script>
+        var base64String = "";
+
+        document.getElementById('loadImageBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        document.getElementById('fileInput').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                base64String = e.target.result;
+                document.getElementById('imageCaliImage').src = base64String;
+                document.getElementById('loadImageBtn').innerHTML = "✅ Load Image";
+            };
+            reader.readAsDataURL(file);
+        });
+
+        var map = L.map('map').setView([50.6, -2.4], 6);
+        map.getContainer().style.cursor = 'crosshair';
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> — Source: Esri, Maxar, Earthstar Geographics',
+            maxZoom: 19
+        }).addTo(map);
+
+        var dot = L.circleMarker([0, 0], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: 5
+        }).addTo(map);
+
+        var lat = 0;
+        var lon = 0;
+        var home = document.getElementById("table");
+
+        var pointArray = {};
+        const markers = {};
+        var itemCounter = 0;
+        var currentCalibrationId = 0;
+
+        function onMapClick(e) {
+            lat = e.latlng.lat;
+            lon = e.latlng.lng;
+
+            dot.setLatLng([lat, lon]);
+
+            document.getElementById("text").innerHTML = e.latlng.lng.toFixed(5) + " " + e.latlng.lat.toFixed(5);
+        }
+        map.on('click', onMapClick);
+
+        function addPoint() {
+            itemCounter++;
+
+            pointArray[itemCounter] = {
+                lon: lon, lat: lat, pixelX: null, pixelY: null
+            }
+
+            var marker = L.marker([lat, lon]).addTo(map);
+            markers[itemCounter] = marker;
+
+            const newPointRow = document.createElement("div");
+            newPointRow.className = "pointRow";
+            newPointRow.id = `pointRow${itemCounter}`;
+            newPointRow.innerHTML = `
+                <button class="deleteButton" onclick="deletePoint(${itemCounter})">❌</button>
+                <button class="caliButton" onclick="calibratePoint(${itemCounter})">🎯</button>
+                <div class="inputBlock">
+                    <div>Pixel X</div>
+                    <input id="pixelXinput${itemCounter}" type="text" value="" oninput="updatePixelX(${itemCounter}, this.value)">
+                </div>
+                <div class="inputBlock">
+                    <div>Pixel Y</div>
+                    <input id="pixelYinput${itemCounter}" type="text" value="" oninput="updatePixelY(${itemCounter}, this.value)">
+                </div>
+                <div>${lon.toFixed(5)}, ${lat.toFixed(5)}</div>
+            `;
+            table.insertBefore(newPointRow, table.firstChild);
+        }
+        function deletePoint(id) {
+            document.getElementById(`pointRow${id}`).remove();
+            markers[id].remove();
+            delete markers[id];
+            delete pointArray[id];
+        }
+        
+        var modal = document.getElementById("imageCaliModal");
+        function calibratePoint(id) {
+            modal.style.display = "block";
+            currentCalibrationId = id;
+        }
+        var img = document.getElementById("imageCaliImage");
+        img.addEventListener('click', function (event) {
+            const rect = img.getBoundingClientRect();
+
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            updatePixelX(currentCalibrationId, x);
+            document.getElementById(`pixelXinput${currentCalibrationId}`).value = x;
+            updatePixelY(currentCalibrationId, y);
+            document.getElementById(`pixelYinput${currentCalibrationId}`).value = y;
+
+            modal.style.display = "none";
+        });
+
+
+        function updatePixelX(id, value) {
+            pointArray[id].pixelX = value;
+        }
+        function updatePixelY(id, value) {
+            pointArray[id].pixelY = value;
+        }
+
+        function exportJSON() {
+            var output = "yo";
+            var locations = [];
+            var pixelPoints = [];
+
+            Object.values(pointArray).forEach((point) => {
+                locations.push({ x: point.lon, y: point.lat });
+                pixelPoints.push({ x: point.pixelX, y: point.pixelY });
+            });
+
+            var name = document.getElementById("mapNameField").value;
+            var outputObject = {
+                name: name,
+                locations: locations,
+                pixelPoints: pixelPoints,
+                imageBase64: base64String
+            };
+
+            const blob = new Blob([JSON.stringify(outputObject)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${name}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
