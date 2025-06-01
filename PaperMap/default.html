@@ -1,187 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PaperMap</title>
-    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.2/lib/browser/math.min.js"></script>
+    <link rel="stylesheet" href="../style.css">
     <style>
-        #mapImage {
-            width: 100%;
+        :root {
+            --darkColour: #ffa500;
+            --darkColourComp: #005aff;
+            --lightColour: #fff4df;
         }
 
-        #mapHolder {
+        .mapContainer {
+            display: inline-block;
+            background-color: var(--lightColour);
+            box-shadow: 0rem 0.1rem 0.2rem 0.1rem var(--darkColour);
+            padding: 0.5rem;
+            margin: 0 1rem 1rem 0;
+            width: 12rem;
             position: relative;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .pin {
-            height: 1rem;
-            width: 0.7rem;
-            transform: translateY(-1rem) translateX(-0.35rem);
-            position: absolute;
-            left: 0;
-            top: 0;
+        .mapContainer h2 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
         }
 
-        #crosshair {
-            width: 2rem;
-            height: 2rem;
-            transform: translateY(-1rem) translateX(-1rem);
+        .mapContainer img {
+            height: 6rem;
+            max-width: 10rem;
+        }
+
+        .mapContainer .deleteButton {
+            content: "×";
             position: absolute;
-            left: 0;
+            right: 0;
             top: 0;
-            transition: left 2s ease-in-out, top 2s ease-in-out; 
+            width: 1.5rem;
+            line-height: 1.5rem;
+            border-radius: 0 0 0 0.5rem;
+            text-align: center;
+            background-color: maroon;
+            color: var(--lightColour);
+            font-weight: bold;
+        }
+
+        .createButton {
+            margin: 1rem 0 1rem 0;
+            cursor: pointer;
+            user-select: none;
         }
     </style>
 </head>
 
-<body>
-    <h2>Map thingy</h2>
-    <input type="file" id="jsonFileInput" accept=".json" />
+<body onload="onload()">
+    <a href="https://adgough.github.io/" class="title">PaperMap</a>
 
-    <div id="mapHolder">
-        <img id="mapImage">
-        <img id="crosshair" src="crosshair.png">
+    <button class="createButton" onclick="window.location.href = 'generator.html';">📝 Create a map</button>
+    <div id="mapList">
+
     </div>
-    <div id="output"></div>
 
     <script>
-        /**
-         * See this paper for more about DLT.
-         * https://www.cs.ubc.ca/grads/resources/thesis/May09/Dubrofsky_Elan.pdf
-         */
-        const dlt = {
-            /**
-             * Create transformation matrix from given point pairs.
-             * @param {array} p0 Original points. At least 4 points must be given.
-             * @param {array} p1 Transformed points. At least 4 points must be given.
-             */
-            dlt2d: (p0, p1) => {
-                if (p0.length < 4 || p1.length < 4) {
-                    throw new Error('At least 4 point pairs must be given.');
-                }
+        function onload() {
+            const matches = Object.entries(localStorage)
+                .filter(([key]) => key.startsWith('PaperMap.Map.'))
+                .reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
+            Object.entries(matches).forEach(([key, value]) => {
+                var map = JSON.parse(value);
+                addMap(map.name, map.imageBase64);
+            });
+        }
 
-                let H = [], B = [];
-                for (let i = 0; i < 4; i++) {
-                    let [x, y, u, v] = [p0[i][0], p0[i][1], p1[i][0], p1[i][1]];
-                    H.push([x, y, 1, 0, 0, 0, -x * u, -y * u]);
-                    H.push([0, 0, 0, x, y, 1, -x * v, -y * v]);
-                    B.push(u);
-                    B.push(v);
-                }
-
-                let M = math.lusolve(H, B);
-                M = math.reshape(M, [8]);
-                M.push(1);
-                return math.reshape(M, [3, 3]);
-            },
-
-            /**
-             * Transform point p with matrix M.
-             * @param {array} M 3x3 matrix.
-             * @param {array} p point with format of [x, y].
-             */
-            transform2d: (M, p) => {
-                if (M[2][2] !== 1) {
-                    M = math.divide(M, M[2][2]);
-                }
-
-                let p0 = [p[0], p[1], 1];
-                let p1 = math.multiply(M, p0);
-                p1 = math.divide(p1, p1[2]);
-
-                return [p1[0], p1[1]];
+        function addMap(name, imageData) {
+            var mapList = document.getElementById("mapList");
+            var newMapContainer = document.createElement("div");
+            newMapContainer.className = "mapContainer";
+            newMapContainer.onclick = function () {
+                sessionStorage.setItem("PaperMap.inboundMap",name);
+                window.location.href = 'map.html';
             }
-        };
-
-        var mapImage = document.getElementById("mapImage");
-        var output = document.getElementById("output");
-        var crosshair = document.getElementById("crosshair");
-
-        var imageWidth;
-        var imageHeight;
-        var transform;
-        var isMapLoaded = false;
-        var lon = 0;
-        var lat = 0;
-
-        const options = {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-        };
-        function success(position) {
-            if (!isMapLoaded) { return; }
-            lat = position.coords.latitude;
-            lon = position.coords.longitude;
-            console.log(lon + " " + lat);
-            let long = lon;
-            let lati = lat;
-            let posInput = [long, lati];
-
-            let pixelOutput = dlt.transform2d(transform, posInput);
-            crosshair.style.left = `${pixelOutput[0]*100/imageWidth}%`;
-            crosshair.style.top =  `${pixelOutput[1]*100/imageHeight}%`;
+            newMapContainer.innerHTML = `
+                <h2>${name}</h2>
+                <div class="deleteButton" onclick="deleteMap('PaperMap.Map.${name}')">×</div>
+                <img src="${imageData}">
+            `;
+            mapList.insertBefore(newMapContainer, mapList.firstChild);
         }
-        function error() {
-            console.log("Sorry, no position available.");
+
+        function deleteMap(mapKey) {
+            localStorage.removeItem(mapKey);
+            location.reload();
         }
-        var posWatch = navigator.geolocation.watchPosition(success, error, options);
-        
-
-        
-
-        document.getElementById('jsonFileInput').addEventListener('change', function (event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                try {
-                    const jsonData = JSON.parse(e.target.result);
-                    const { imageBase64, pixelPoints, locations } = jsonData;
-
-                    mapImage.onload = () => {
-                        imageWidth = mapImage.naturalWidth;
-                        imageHeight = mapImage.naturalHeight;
-
-                        let dst = [];
-                        let src = [];
-
-                        pixelPoints.forEach(pixelPoint => {
-                            const img = document.createElement('img');
-                            img.className = 'pin';
-                            img.src = 'pin.png';
-                            img.style.cssText = `
-                            left: calc((${pixelPoint.x} / ${imageWidth}) * 100%);
-                            top: calc((${pixelPoint.y} / ${imageHeight}) * 100%);
-                            position: absolute;
-                            `;
-                            document.getElementById('mapHolder').appendChild(img);
-
-                            dst.push([pixelPoint.x, pixelPoint.y]);
-                        });
-
-                        locations.forEach(location => {
-                            src.push([location.x, location.y]);
-                        });
-
-                        transform = dlt.dlt2d(src, dst);
-                        
-                    };
-                    mapImage.src = imageBase64;
-
-
-                } catch (error) {
-                    console.error('Invalid JSON file:', error);
-                }
-
-            };
-            reader.readAsText(file);
-            isMapLoaded = true;
-        });
-
-        
-
 
     </script>
 </body>

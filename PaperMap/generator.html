@@ -89,6 +89,11 @@
             margin: 0.5rem;
             font-weight: bold;
         }
+
+        #saveToDeviceConfirmer {
+            opacity: 0;
+            transition: opacity 0.5s linear;
+        }
     </style>
 </head>
 
@@ -102,13 +107,16 @@
         <button onclick="addPoint()">📌 Add</button>
         <button id="loadImageBtn">📷 Load Image</button>
         <div>Name: <input id="mapNameField" type="text" value="My Map"></div>
-        <button onclick="exportJSON()">📤 Export</button>
+        <button onclick="exportJSON('file')">📤 Export .json</button>
+        <button onclick="exportJSON('storage')">📲 Save to device</button>
+        <span id="saveToDeviceConfirmer">✅</span>
+        <button onclick="window.location.href = 'default.html';">🏠 Return to map list</button>
     </div>
 
     <div id="table"></div>
 
     <div id="imageCaliModal">
-        <img id="imageCaliImage" src="pin.png">
+        <img id="imageCaliImage" src="">
         <div id="modalInstructions">Click the image to select a pixel location.</div>
     </div>
     </div>
@@ -199,7 +207,7 @@
             delete markers[id];
             delete pointArray[id];
         }
-        
+
         var modal = document.getElementById("imageCaliModal");
         function calibratePoint(id) {
             modal.style.display = "block";
@@ -228,8 +236,7 @@
             pointArray[id].pixelY = value;
         }
 
-        function exportJSON() {
-            var output = "yo";
+        function exportJSON(destination) {
             var locations = [];
             var pixelPoints = [];
 
@@ -246,15 +253,29 @@
                 imageBase64: base64String
             };
 
-            const blob = new Blob([JSON.stringify(outputObject)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${name}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            var JSONstring = JSON.stringify(outputObject);
+
+            switch (destination) {
+                case "file":
+                    const blob = new Blob([JSONstring], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${name}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    break;
+                case "storage":
+                    localStorage.setItem(`PaperMap.Map.${name}`, JSONstring);
+                    var confirmer = document.getElementById("saveToDeviceConfirmer");
+                    confirmer.style.opacity = "1";
+                    setTimeout(() => {
+                        confirmer.style.opacity = "0";
+                    }, 5000);
+                    break;
+            }
         }
     </script>
 </body>

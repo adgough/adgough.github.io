@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>PaperMap Map</title>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.2/lib/browser/math.min.js"></script>
+    <style>
+        #mapImage {
+            width: 100%;
+        }
+
+        #mapHolder {
+            position: relative;
+        }
+
+        .pin {
+            height: 1rem;
+            width: 0.7rem;
+            transform: translateY(-1rem) translateX(-0.35rem);
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        #crosshair {
+            width: 2rem;
+            height: 2rem;
+            transform: translateY(-1rem) translateX(-1rem);
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: left 2s ease-in-out, top 2s ease-in-out;
+        }
+    </style>
+</head>
+
+<body onload="onload()">
+    <h2>Map thingy</h2>
+    <input type="file" id="jsonFileInput" accept=".json" />
+
+    <div id="mapHolder">
+        <img id="mapImage">
+        <img id="crosshair" src="crosshair.png">
+    </div>
+    <div id="output"></div>
+
+    <script>
+        /**
+         * See this paper for more about DLT.
+         * https://www.cs.ubc.ca/grads/resources/thesis/May09/Dubrofsky_Elan.pdf
+         */
+        const dlt = {
+            /**
+             * Create transformation matrix from given point pairs.
+             * @param {array} p0 Original points. At least 4 points must be given.
+             * @param {array} p1 Transformed points. At least 4 points must be given.
+             */
+            dlt2d: (p0, p1) => {
+                if (p0.length < 4 || p1.length < 4) {
+                    throw new Error('At least 4 point pairs must be given.');
+                }
+
+                let H = [], B = [];
+                for (let i = 0; i < 4; i++) {
+                    let [x, y, u, v] = [p0[i][0], p0[i][1], p1[i][0], p1[i][1]];
+                    H.push([x, y, 1, 0, 0, 0, -x * u, -y * u]);
+                    H.push([0, 0, 0, x, y, 1, -x * v, -y * v]);
+                    B.push(u);
+                    B.push(v);
+                }
+
+                let M = math.lusolve(H, B);
+                M = math.reshape(M, [8]);
+                M.push(1);
+                return math.reshape(M, [3, 3]);
+            },
+
+            /**
+             * Transform point p with matrix M.
+             * @param {array} M 3x3 matrix.
+             * @param {array} p point with format of [x, y].
+             */
+            transform2d: (M, p) => {
+                if (M[2][2] !== 1) {
+                    M = math.divide(M, M[2][2]);
+                }
+
+                let p0 = [p[0], p[1], 1];
+                let p1 = math.multiply(M, p0);
+                p1 = math.divide(p1, p1[2]);
+
+                return [p1[0], p1[1]];
+            }
+        };
+
+        var mapImage = document.getElementById("mapImage");
+        var output = document.getElementById("output");
+        var crosshair = document.getElementById("crosshair");
+
+        var imageWidth;
+        var imageHeight;
+        var transform;
+        var isMapLoaded = false;
+        var lon = 0;
+        var lat = 0;
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        };
+        function success(position) {
+            if (!isMapLoaded) { return; }
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+            console.log(lon + " " + lat);
+            let long = lon;
+            let lati = lat;
+            let posInput = [long, lati];
+
+            let pixelOutput = dlt.transform2d(transform, posInput);
+            crosshair.style.left = `${pixelOutput[0] * 100 / imageWidth}%`;
+            crosshair.style.top = `${pixelOutput[1] * 100 / imageHeight}%`;
+        }
+        function error() {
+            console.log("Sorry, no position available.");
+        }
+        var posWatch = navigator.geolocation.watchPosition(success, error, options);
+
+        function onload() {
+            var inboundMap = sessionStorage.getItem("PaperMap.inboundMap");
+            if (inboundMap != null) {
+                jsonData = JSON.parse(localStorage.getItem(`PaperMap.Map.${inboundMap}`));
+                loadMap(jsonData);
+            }
+        }
+
+        document.getElementById('jsonFileInput').addEventListener('change', function (event) {
+            document.querySelectorAll('.pin').forEach(el => el.remove());
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    jsonData = JSON.parse(e.target.result);
+                    loadMap(jsonData);                    
+                } catch (error) {
+                    console.error('Invalid JSON file:', error);
+                }
+            };
+            reader.readAsText(file);
+            isMapLoaded = true;
+        });
+
+        function loadMap(jsonData) {
+            const { imageBase64, pixelPoints, locations } = jsonData;
+            mapImage.onload = () => {
+                imageWidth = mapImage.naturalWidth;
+                imageHeight = mapImage.naturalHeight;
+
+                let dst = [];
+                let src = [];
+
+                
+                pixelPoints.forEach(pixelPoint => {
+                    const img = document.createElement('img');
+                    img.className = 'pin';
+                    img.src = 'pin.png';
+                    img.style.cssText = `
+                            left: calc((${pixelPoint.x} / ${imageWidth}) * 100%);
+                            top: calc((${pixelPoint.y} / ${imageHeight}) * 100%);
+                            position: absolute;
+                            `;
+                    document.getElementById('mapHolder').appendChild(img);
+
+                    dst.push([pixelPoint.x, pixelPoint.y]);
+                });
+
+                locations.forEach(location => {
+                    src.push([location.x, location.y]);
+                });
+
+                transform = dlt.dlt2d(src, dst);
+
+            };
+            mapImage.src = imageBase64;
+        }
+
+
+    </script>
+</body>
+
+</html>
