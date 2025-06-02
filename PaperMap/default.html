@@ -13,40 +13,28 @@
             --lightColour: #fff4df;
         }
 
-        .mapContainer {
-            display: inline-block;
-            background-color: var(--lightColour);
-            box-shadow: 0rem 0.1rem 0.2rem 0.1rem var(--darkColour);
-            padding: 0.5rem;
-            margin: 0 1rem 1rem 0;
-            width: 12rem;
-            position: relative;
+        .card {
             cursor: pointer;
-            user-select: none;
         }
 
-        .mapContainer h2 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1rem;
-        }
-
-        .mapContainer img {
-            height: 6rem;
-            max-width: 10rem;
-        }
-
-        .mapContainer .deleteButton {
+        .deleteButton {
+            display: inline-block;
+            vertical-align: middle;
             content: "×";
-            position: absolute;
+            font-size: 0.8rem;
+            line-height: 1.2rem;
             right: 0;
             top: 0;
-            width: 1.5rem;
-            line-height: 1.5rem;
-            border-radius: 0 0 0 0.5rem;
+            width: 1.2rem;
+            height: 1.2rem;
+            border-radius: 1.5rem;
             text-align: center;
             background-color: maroon;
             color: var(--lightColour);
             font-weight: bold;
+            margin-left: 0.5rem;
+            cursor: pointer;
+            user-select: none;
         }
 
         .createButton {
@@ -82,15 +70,17 @@
         function addMap(name, imageData) {
             var mapList = document.getElementById("mapList");
             var newMapContainer = document.createElement("div");
-            newMapContainer.className = "mapContainer";
+            newMapContainer.className = "card";
             newMapContainer.onclick = function () {
-                sessionStorage.setItem("PaperMap.inboundMap",name);
+                sessionStorage.setItem("PaperMap.inboundMap", name);
                 window.location.href = 'map.html';
             }
             newMapContainer.innerHTML = `
-                <h2>${name}</h2>
-                <div class="deleteButton" onclick="deleteMap('PaperMap.Map.${name}')">×</div>
                 <img src="${imageData}">
+                <div>
+                    <h2>${name}<div class="deleteButton" onclick="deleteMap('PaperMap.Map.${name}')">×</div></h2>
+                    <p></p> <!-- placeholder to wire in description field -->
+                </div>
             `;
             mapList.insertBefore(newMapContainer, mapList.firstChild);
         }
